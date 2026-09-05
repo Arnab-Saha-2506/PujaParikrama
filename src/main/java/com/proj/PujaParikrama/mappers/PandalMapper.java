@@ -45,12 +45,12 @@ public class PandalMapper {
                 .build();
     }
 
-    public static DistanceResponseDTO toDistanceResponseDTO(PandalEntity pandal, Double userLatitude, Double userLongitude, double distanceKm, int walkingMinutes){
+    public static DistanceResponseDTO toDistanceResponseDTO(PandalEntity pandal, double distanceKm, int walkingMinutes){
         return DistanceResponseDTO.builder()
                 .pandalId(pandal.getId())
                 .pandalName(pandal.getName())
-                .userLatitude(userLatitude)
-                .userLongitude(userLongitude)
+//                .userLatitude(userLatitude)
+//                .userLongitude(userLongitude)
                 .distanceInKm(Math.round(distanceKm * 100.0) / 100.0)
                 .walkingTimeMinutes(walkingMinutes)
                 .build();

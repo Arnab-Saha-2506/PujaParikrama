@@ -68,6 +68,17 @@ public class PandalServiceImpl implements PandalService{
 
     @Override
     public DistanceResponseDTO calculateDistance(Long pandalId, Double userLatitude, Double userLongitude) {
+
+        if(userLatitude == null || userLongitude == null){
+            throw new IllegalArgumentException("Latitude and Longitude are required");
+        }
+        if(userLatitude < -90 || userLatitude > 90){
+            throw new IllegalArgumentException("Latitude must be between -90 and 90");
+        }
+        if(userLongitude < -180 || userLongitude > 180){
+            throw new IllegalArgumentException("Longitude must be between -180 and 180");
+        }
+
         PandalEntity pandal;
 
         try {
@@ -84,7 +95,7 @@ public class PandalServiceImpl implements PandalService{
 
         int walkingMinutes = (int) Math.round((distanceKm / 5.0) * 60);
 
-        return PandalMapper.toDistanceResponseDTO(pandal, userLatitude, userLongitude, distanceKm, walkingMinutes);
+        return PandalMapper.toDistanceResponseDTO(pandal, distanceKm, walkingMinutes);
 
         //        return null;
     }
