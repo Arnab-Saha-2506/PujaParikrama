@@ -1,14 +1,12 @@
 package com.proj.PujaParikrama.controller;
 
+import com.proj.PujaParikrama.dto.DistanceResponseDTO;
 import com.proj.PujaParikrama.dto.PandalDetailResponseDTO;
 import com.proj.PujaParikrama.dto.PandalResponseDTO;
 import com.proj.PujaParikrama.service.PandalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -27,6 +25,16 @@ public class PandalController {
     @GetMapping("/pandals/{pandalId}")
     public ResponseEntity<PandalDetailResponseDTO> getPandalDetails(@PathVariable Long pandalId){
         PandalDetailResponseDTO responseDTO = pandalService.getPandalDetails(pandalId);
+        return ResponseEntity.ok().body(responseDTO);
+    }
+
+    @GetMapping("/pandals/{pandalId}/distance")
+    public ResponseEntity<DistanceResponseDTO> calculateDistance(
+            @PathVariable Long pandalId,
+            @RequestParam double lat,
+            @RequestParam double lon
+    ){
+        DistanceResponseDTO responseDTO = pandalService.calculateDistance(pandalId, lat, lon);
         return ResponseEntity.ok().body(responseDTO);
     }
 }

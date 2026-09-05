@@ -1,5 +1,6 @@
 package com.proj.PujaParikrama.service;
 
+import com.proj.PujaParikrama.dto.DistanceResponseDTO;
 import com.proj.PujaParikrama.dto.MetroStationResponseDTO;
 import com.proj.PujaParikrama.dto.PandalDetailResponseDTO;
 import com.proj.PujaParikrama.dto.PandalResponseDTO;
@@ -63,5 +64,40 @@ public class PandalServiceImpl implements PandalService{
         return PandalMapper.toPandalDetailResponseDTO(pandal, area, nearbyMetros);
 
 //        return null;
+    }
+
+    @Override
+    public DistanceResponseDTO calculateDistance(Long pandalId, Double userLatitude, Double userLongitude) {
+        PandalEntity pandal;
+
+        try {
+            pandal = pandalRepository.getReferenceById(pandalId);
+        } catch (Exception e) {
+            throw new NotFoundException("Pandal not found with id: "+pandalId);
+        }
+
+        if(pandal.getLatitude() == null || pandal.getLongitude() == null){
+            throw new NotFoundException("Pandal location coordinates not available");
+        }
+
+        double distanceKm = calculateHaversineDistance(userLatitude, userLongitude, pandal.getLatitude(), pandal.getLongitude());
+
+        int walkingMinutes = (int) Math.round((distanceKm / 5.0) * 60);
+
+        return PandalMapper.toDistanceResponseDTO(pandal, userLatitude, userLongitude, distanceKm, walkingMinutes);
+
+        //        return null;
+    }
+
+    private double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2){
+        final int R = 6371;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2* Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 }

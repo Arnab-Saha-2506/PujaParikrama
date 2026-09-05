@@ -1,5 +1,6 @@
 package com.proj.PujaParikrama.mappers;
 
+import com.proj.PujaParikrama.dto.DistanceResponseDTO;
 import com.proj.PujaParikrama.dto.MetroStationResponseDTO;
 import com.proj.PujaParikrama.dto.PandalDetailResponseDTO;
 import com.proj.PujaParikrama.dto.PandalResponseDTO;
@@ -41,6 +42,17 @@ public class PandalMapper {
                 .bestTimeToVisit(entity.getBestTimeToVisit())
                 .areaName(area.getName())
                 .nearbyMetros(nearbyMetros)
+                .build();
+    }
+
+    public static DistanceResponseDTO toDistanceResponseDTO(PandalEntity pandal, Double userLatitude, Double userLongitude, double distanceKm, int walkingMinutes){
+        return DistanceResponseDTO.builder()
+                .pandalId(pandal.getId())
+                .pandalName(pandal.getName())
+                .userLatitude(userLatitude)
+                .userLongitude(userLongitude)
+                .distanceInKm(Math.round(distanceKm * 100.0) / 100.0)
+                .walkingTimeMinutes(walkingMinutes)
                 .build();
     }
 }
