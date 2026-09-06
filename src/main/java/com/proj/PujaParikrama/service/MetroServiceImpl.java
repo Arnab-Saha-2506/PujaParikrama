@@ -24,7 +24,7 @@ public class MetroServiceImpl implements MetroService{
 
     @Override
     public List<MetroStationResponseDTO> getNearbyMetroStations(Long pandalId) {
-        List<PandalMetroEntity> pandalMetros = pandalMetroRepository.findByPandalId(pandalId);
+        List<PandalMetroEntity> pandalMetros = pandalMetroRepository.findByPandalIdWithMetroStation(pandalId);
 
         if(pandalMetros.isEmpty()){
             throw new NotFoundException("No metro stations found for pandal id: "+pandalId);
