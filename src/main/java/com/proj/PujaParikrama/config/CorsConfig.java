@@ -19,7 +19,9 @@ public class CorsConfig {
                         .allowedOriginPatterns("http://localhost:*",
                                 "https://*.onrender.com",
                                 "https://*.vercel.app",
-                                "https://*.netlify.app")
+                                "https://*.netlify.app",
+                                "https://*.pages.dev"
+                        )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .maxAge(3600);
