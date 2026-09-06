@@ -11,8 +11,12 @@ public class PujaParikramaApplication {
 
 	public static void main(String[] args) {
 
-		Dotenv dotenv = Dotenv.configure().load();
-		dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+		try {
+			io.github.cdimascio.dotenv.Dotenv dotenv = io.github.cdimascio.dotenv.Dotenv.configure().load();
+			dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+		} catch (Exception e) {
+			// .env not found — using environment variables from the system
+		}
 
 		SpringApplication.run(PujaParikramaApplication.class, args);
 	}
