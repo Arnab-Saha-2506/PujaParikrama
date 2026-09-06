@@ -3,6 +3,7 @@ package com.proj.PujaParikrama.controller;
 import com.proj.PujaParikrama.dto.AreaResponseDTO;
 import com.proj.PujaParikrama.service.AreaService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,7 +27,9 @@ public class AreaController {
     @GetMapping("/{areaId}")
     public ResponseEntity<AreaResponseDTO> getAreaById(@PathVariable Long areaId){
         AreaResponseDTO responseDTO = areaService.getAreaById(areaId);
-        return ResponseEntity.ok().body(responseDTO);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "max-age=3600, stale-while-revalidate=300")
+                .body(responseDTO);
 
     }
 }

@@ -55,7 +55,7 @@ public class PandalServiceImpl implements PandalService{
 
         AreaEntity area = pandal.getArea();
 
-        List<PandalMetroEntity> pandalMetros = pandalMetroRepository.findByPandalId(pandalId);
+        List<PandalMetroEntity> pandalMetros = pandalMetroRepository.findByPandalIdWithMetroStation(pandalId);
 
         List<MetroStationResponseDTO> nearbyMetros = pandalMetros.stream()
                 .map(MetroMapper::toMetroStationResponseDTO)
