@@ -18,4 +18,5 @@ public class PandalResponseDTO {
     private Double longitude;
     private Long areaId;
     private String areaName;
+    private String nearbyMetroStationName;
 }
