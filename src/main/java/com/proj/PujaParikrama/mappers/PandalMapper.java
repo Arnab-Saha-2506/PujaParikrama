@@ -8,6 +8,7 @@ import com.proj.PujaParikrama.entity.AreaEntity;
 import com.proj.PujaParikrama.entity.PandalEntity;
 import com.proj.PujaParikrama.entity.PandalMetroEntity;
 
+import java.util.Comparator;
 import java.util.List;
 
 public class PandalMapper {
@@ -17,6 +18,21 @@ public class PandalMapper {
 //    toMetroStationResponseDTO
 
     public static PandalResponseDTO toPandalResponseDTO(PandalEntity entity){
+        String nearestMetro = null;
+
+        try{
+            if(entity.getPandalMetros() != null && !entity.getPandalMetros().isEmpty()){
+                PandalMetroEntity nearest = entity.getPandalMetros().stream()
+                        .filter(pm -> pm.getDistanceKm() != null)
+                        .min(Comparator.comparing(PandalMetroEntity::getDistanceKm))
+                        .orElse(null);
+                if(nearest != null && nearest.getMetroStation() != null){
+                    nearestMetro = nearest.getMetroStation().getName();
+                }
+            }
+        } catch (Exception e) {
+            nearestMetro = null;
+        }
         return PandalResponseDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
@@ -27,6 +43,7 @@ public class PandalMapper {
                 .longitude(entity.getLongitude())
                 .areaId(entity.getArea().getId())
                 .areaName(entity.getArea().getName())
+                .nearbyMetroStationName(nearestMetro)
                 .build();
     }
 
