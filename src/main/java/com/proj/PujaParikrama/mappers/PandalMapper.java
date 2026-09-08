@@ -7,6 +7,8 @@ import com.proj.PujaParikrama.dto.PandalResponseDTO;
 import com.proj.PujaParikrama.entity.AreaEntity;
 import com.proj.PujaParikrama.entity.PandalEntity;
 import com.proj.PujaParikrama.entity.PandalMetroEntity;
+import com.proj.PujaParikrama.service.PandalService;
+import com.proj.PujaParikrama.service.PandalServiceImpl;
 
 import java.util.Comparator;
 import java.util.List;
@@ -23,8 +25,11 @@ public class PandalMapper {
         try{
             if(entity.getPandalMetros() != null && !entity.getPandalMetros().isEmpty()){
                 PandalMetroEntity nearest = entity.getPandalMetros().stream()
-                        .filter(pm -> pm.getDistanceKm() != null)
-                        .min(Comparator.comparing(PandalMetroEntity::getDistanceKm))
+                        .min(Comparator.comparing(pm -> {
+                            Double dist = pm.getDistanceKm();
+                            if(dist != null) return dist;
+                            return calculateDistance(entity, pm);
+                                }))
                         .orElse(null);
                 if(nearest != null && nearest.getMetroStation() != null){
                     nearestMetro = nearest.getMetroStation().getName();
@@ -71,5 +76,29 @@ public class PandalMapper {
                 .distanceInKm(Math.round(distanceKm * 100.0) / 100.0)
                 .walkingTimeMinutes(walkingMinutes)
                 .build();
+    }
+
+    private static double calculateDistance(PandalEntity pandal, PandalMetroEntity pm) {
+        if (pandal.getLatitude() == null || pandal.getLongitude() == null) return Double.MAX_VALUE;
+        if (pm.getMetroStation() == null ||
+                pm.getMetroStation().getLatitude() == null ||
+                pm.getMetroStation().getLongitude() == null) return Double.MAX_VALUE;
+
+        return calculateHaversineDistance(
+                pandal.getLatitude(), pandal.getLongitude(),
+                pm.getMetroStation().getLatitude(),
+                pm.getMetroStation().getLongitude()
+        );
+    }
+
+    private static double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Earth radius in km
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 }
