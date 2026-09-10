@@ -1,9 +1,6 @@
 package com.proj.PujaParikrama.mappers;
 
-import com.proj.PujaParikrama.dto.DistanceResponseDTO;
-import com.proj.PujaParikrama.dto.MetroStationResponseDTO;
-import com.proj.PujaParikrama.dto.PandalDetailResponseDTO;
-import com.proj.PujaParikrama.dto.PandalResponseDTO;
+import com.proj.PujaParikrama.dto.*;
 import com.proj.PujaParikrama.entity.AreaEntity;
 import com.proj.PujaParikrama.entity.PandalEntity;
 import com.proj.PujaParikrama.entity.PandalMetroEntity;
@@ -49,6 +46,36 @@ public class PandalMapper {
                 .areaId(entity.getArea().getId())
                 .areaName(entity.getArea().getName())
                 .nearbyMetroStationName(nearestMetro)
+                .build();
+    }
+
+    public static NearbyPandalDTO toNearbyPandalDTO(PandalEntity entity, double distance){
+        String nearestMetro = null;
+
+        try{
+            if(entity.getPandalMetros() != null && !entity.getPandalMetros().isEmpty()){
+                PandalMetroEntity nearest = entity.getPandalMetros().stream()
+                        .min(Comparator.comparing(pm -> {
+                            Double dist = pm.getDistanceKm();
+                            if(dist != null) return dist;
+                            return calculateDistance(entity, pm);
+                        }))
+                        .orElse(null);
+                if(nearest != null && nearest.getMetroStation() != null){
+                    nearestMetro = nearest.getMetroStation().getName();
+                }
+            }
+        } catch (Exception e) {
+            nearestMetro = null;
+        }
+        return NearbyPandalDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .latitude(entity.getLatitude())
+                .longitude(entity.getLongitude())
+                .distanceInKm(Math.round(distance * 100.0) / 100.0)
+                .walkingTimeMinutes((int) Math.round(distance / 5.0 * 5.0))
+                .nearbyMetroName(nearestMetro)
                 .build();
     }
 

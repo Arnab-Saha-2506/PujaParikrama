@@ -1,6 +1,7 @@
 package com.proj.PujaParikrama.controller;
 
 import com.proj.PujaParikrama.dto.DistanceResponseDTO;
+import com.proj.PujaParikrama.dto.NearbyPandalDTO;
 import com.proj.PujaParikrama.dto.PandalDetailResponseDTO;
 import com.proj.PujaParikrama.dto.PandalResponseDTO;
 import com.proj.PujaParikrama.service.PandalService;
@@ -37,4 +38,15 @@ public class PandalController {
         DistanceResponseDTO responseDTO = pandalService.calculateDistance(pandalId, lat, lon);
         return ResponseEntity.ok().body(responseDTO);
     }
+
+    @GetMapping("/pandals/nearby")
+    public ResponseEntity<List<NearbyPandalDTO>> findNearbyPandals(
+            @RequestParam Double lat,
+            @RequestParam Double lon,
+            @RequestParam(defaultValue = "2") Double radiusKm
+    ){
+        List<NearbyPandalDTO> response = pandalService.findNearbyPandals(lat, lon, radiusKm);
+        return ResponseEntity.ok().body(response);
+    }
+
 }
