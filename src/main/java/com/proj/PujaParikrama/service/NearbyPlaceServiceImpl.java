@@ -5,7 +5,13 @@ import com.proj.PujaParikrama.mappers.NearbyPlaceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -32,20 +38,28 @@ public class NearbyPlaceServiceImpl implements NearbyPlaceService{
                         "(node[\"amenity\"=\"%s\"](around:%d,%.6f,%.6f);" +
                         " way[\"amenity\"=\"%s\"](around:%d,%.6f,%.6f);" +
                         " relation[\"amenity\"=\"%s\"](around:%d,%.6f,%.6f);" +
-                        ");out center;%d",
+                        ");out center;",
                 osmType, radiusMeters, lat, lon,
                 osmType, radiusMeters, lat, lon,
-                osmType, radiusMeters, lat, lon,
-                radiusMeters
+                osmType, radiusMeters, lat, lon
         );
 
-        Map<String, Object> request = new HashMap<>();
-        request.put("data", query);
+        // Build form-encoded request for Overpass API
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("data", query);
 
-        Map<String, Object> response = restTemplate.postForObject(OVERPASS_URL, request, Map.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> elements = (List<Map<String, Object>>) response.getOrDefault("elements", Collections.emptyList());
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+
+        ResponseEntity<Map> responseEntity = restTemplate.postForEntity(OVERPASS_URL, requestEntity, Map.class);
+        Map<String, Object> response = responseEntity.getBody();
+
+        // Safely handle empty responses
+        List<Map<String, Object>> elements = (response != null)
+                ? (List<Map<String, Object>>) response.getOrDefault("elements", Collections.emptyList())
+                : Collections.emptyList();
 
         return elements.stream()
                 .limit(50)
