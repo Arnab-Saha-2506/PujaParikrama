@@ -8,86 +8,80 @@ import java.util.Map;
 
 public class NearbyPlaceMapper {
 
-    public static NearbyPlaceDTO toNearbyPlaceDTO(Map<String, Object> element, double userLat, double userLon){
-        Double lat = null;
-        Double lon = null;
+    /**
+     * Geoapify returns GeoJSON Feature format:
+     * {
+     *   "properties": { "name": "...", "address": { "address_line1": "...", "city": "..." } },
+     *   "geometry": { "coordinates": [longitude, latitude] }  // NOTE: lon, lat order
+     * }
+     */
+    @SuppressWarnings("unchecked")
+    public static NearbyPlaceDTO toNearbyPlaceDTO(Map<String, Object> feature, double userLat, double userLon) {
+        try {
+            Map<String, Object> properties = (Map<String, Object>) feature.get("properties");
+            if (properties == null) return null;
 
-        // Handle node type (direct lat/lon)
-        if (element.containsKey("center")) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> center = (Map<String, Object>) element.get("center");
-            lat = ((Number) center.get("lat")).doubleValue();
-            lon = ((Number) center.get("lon")).doubleValue();
-        } else if (element.containsKey("lat") && element.containsKey("lon")) {
-            lat = ((Number) element.get("lat")).doubleValue();
-            lon = ((Number) element.get("lon")).doubleValue();
-        } else {
-            // Missing coordinates - skip this element
+            // Extract coordinates (GeoJSON format: [lon, lat])
+            Map<String, Object> geometry = (Map<String, Object>) feature.get("geometry");
+            if (geometry == null) return null;
+
+            List<Double> coordinates = (List<Double>) geometry.get("coordinates");
+            double lon = coordinates.get(0);  // longitude
+            double lat = coordinates.get(1);  // latitude
+
+            // Calculate distance
+            double distanceKm = calculateHaversine(userLat, userLon, lat, lon);
+
+            // Extract name
+            String name = (String) properties.get("name");
+            if (name == null || name.isEmpty()) {
+                name = (String) properties.getOrDefault("display_name", "Unnamed Place");
+            }
+
+            // Extract address
+            String address = extractAddress(properties);
+
+            // Build placeId
+            Object featureId = feature.get("id");
+            Object placeId = properties.getOrDefault("place_id",
+                    (featureId != null ? featureId.toString() : "geoapify_" + lat + "_" + lon));
+
+            return NearbyPlaceDTO.builder()
+                    .placeId(placeId.toString())
+                    .name(name)
+                    .address(address)
+                    .latitude(lat)
+                    .longitude(lon)
+                    .distanceInKm(Math.round(distanceKm * 100.0) / 100.0)
+                    .walkingTimeMinutes((int) Math.round(distanceKm / 5.0 * 60))
+                    .build();
+
+        } catch (Exception e) {
+            // Log silently and return null (filtered out by caller)
             return null;
         }
-
-        double distance = calculateHaversineDistance(userLat, userLon, lat, lon);
-
-        return NearbyPlaceDTO.builder()
-                .placeId(element.get("type") + "/" + element.get("id"))
-                .name(extractName(element))
-                .address(extractAddress(element))
-                .latitude(lat)
-                .longitude(lon)
-                .distanceInKm(Math.round(distance * 100.0) / 100.0)
-                .walkingTimeMinutes((int) Math.round(distance / 5.0 * 60))
-                .build();
     }
 
-    private static String extractName(Map<String, Object> element) {
-        Map<String, String> tags = getTags(element);
-        if (tags != null && tags.containsKey("name")) {
-            return tags.get("name");
+    private static String extractAddress(Map<String, Object> properties) {
+        // Try formatted address first
+        String addrLine1 = (String) properties.getOrDefault("name", "");
+
+        Map<String, Object> address = (Map<String, Object>) properties.get("address");
+        if (address != null) {
+            List<String> parts = new ArrayList<>();
+            if (address.get("address_line1") != null) parts.add((String) address.get("address_line1"));
+            if (address.get("address_line2") != null) parts.add((String) address.get("address_line2"));
+            if (address.get("city") != null) parts.add((String) address.get("city"));
+
+            String fullAddress = String.join(", ", parts);
+            return fullAddress.isEmpty() ? addrLine1 : fullAddress;
         }
-        return "Unnamed Place";
+
+        return addrLine1;
     }
 
-    @SuppressWarnings("unchecked")
-    private static String extractAddress(Map<String, Object> element) {
-        Map<String, String> tags = getTags(element);
-        if (tags == null) return "";
-
-        // Try addr:full first, then construct from components
-        if (tags.containsKey("addr:full")) return tags.get("addr:full");
-
-        List<String> parts = new ArrayList<>();
-        if (tags.containsKey("addr:street")) parts.add(tags.get("addr:street"));
-        if (tags.containsKey("addr:housenumber")) parts.add(0, tags.get("addr:housenumber"));
-        if (tags.containsKey("addr:city")) parts.add(tags.get("addr:city"));
-
-        return String.join(", ", parts);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, String> getTags(Map<String, Object> element) {
-        return (Map<String, String>) element.get("tags");
-    }
-
-    private static String getTag(Map<String, Object> element, String key) {
-        @SuppressWarnings("unchecked")
-        Map<String, String> tags = (Map<String, String>) element.get("tags");
-        if (tags != null) {
-            String value = tags.get(key);
-            if (value != null) return value;
-        }
-        // Try alternate address tags
-        if ("addr:full".equals(key)) {
-            String addr = getTag(element, "addr:street");
-            String city = getTag(element, "addr:city");
-            if (addr != null || city != null) {
-                return (addr != null ? addr : "") + ", " + (city != null ? city : "");
-            }
-        }
-        return "";
-    }
-
-    private static double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // Earth radius in km
+    private static double calculateHaversine(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371;
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)

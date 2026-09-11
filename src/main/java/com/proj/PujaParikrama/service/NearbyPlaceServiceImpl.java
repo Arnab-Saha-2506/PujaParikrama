@@ -5,13 +5,8 @@ import com.proj.PujaParikrama.mappers.NearbyPlaceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -20,65 +15,64 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class NearbyPlaceServiceImpl implements NearbyPlaceService{
+public class NearbyPlaceServiceImpl implements NearbyPlaceService {
 
     private final RestTemplate restTemplate;
-    private static final String OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+
+    @Value("${GEOPIFY_API_KEY}")
+    private String apiKey;
+
+    private static final String GEOAPIFY_URL = "https://api.geoapify.com/v2/places";
 
     @Override
     @Cacheable(value = "nearbyPlaces", key = "{#type, #lat, #lon, #radiusKm}")
     public List<NearbyPlaceDTO> findNearbyPlaces(String type, double lat, double lon, double radiusKm) {
-        int radiusMeters = (int) (radiusKm * 1000);
+        try {
+            String geoapifyType = mapToGeoapifyType(type);
+            int radiusMeters = (int) (radiusKm * 1000);
 
-        String osmType = mapToOsmType(type);
+            String url = UriComponentsBuilder
+                    .fromUriString(GEOAPIFY_URL)
+                    .queryParam("categories", geoapifyType)
+                    .queryParam("filter", "circle:" + lon + "," + lat + "," + radiusMeters)
+                    .queryParam("bias", "proximity:" + lon + "," + lat)
+                    .queryParam("apiKey", apiKey)
+                    .queryParam("limit", 50)
+                    .toUriString();
 
-        // Overpass QL query
-        String query = String.format(
-                "[out:json][timeout:25];" +
-                        "(node[\"amenity\"=\"%s\"](around:%d,%.6f,%.6f);" +
-                        " way[\"amenity\"=\"%s\"](around:%d,%.6f,%.6f);" +
-                        " relation[\"amenity\"=\"%s\"](around:%d,%.6f,%.6f);" +
-                        ");out center;",
-                osmType, radiusMeters, lat, lon,
-                osmType, radiusMeters, lat, lon,
-                osmType, radiusMeters, lat, lon
-        );
+            ResponseEntity<Map> responseEntity = restTemplate.getForEntity(url, Map.class);
+            Map<String, Object> response = responseEntity.getBody();
 
-        // Build form-encoded request for Overpass API
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("data", query);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> features = (response != null)
+                    ? (List<Map<String, Object>>) response.getOrDefault("features", Collections.emptyList())
+                    : Collections.emptyList();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            return features.stream()
+                    .limit(50)
+                    .map(result -> NearbyPlaceMapper.toNearbyPlaceDTO(result, lat, lon))
+                    .filter(Objects::nonNull)
+                    .filter(place -> place.getDistanceInKm() <= radiusKm)
+                    .sorted(Comparator.comparing(NearbyPlaceDTO::getDistanceInKm))
+                    .collect(Collectors.toList());
 
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
-
-        ResponseEntity<Map> responseEntity = restTemplate.postForEntity(OVERPASS_URL, requestEntity, Map.class);
-        Map<String, Object> response = responseEntity.getBody();
-
-        // Safely handle empty responses
-        List<Map<String, Object>> elements = (response != null)
-                ? (List<Map<String, Object>>) response.getOrDefault("elements", Collections.emptyList())
-                : Collections.emptyList();
-
-        return elements.stream()
-                .limit(50)
-                .map(result -> NearbyPlaceMapper.toNearbyPlaceDTO(result, lat, lon))
-                .sorted(Comparator.comparing(NearbyPlaceDTO::getDistanceInKm))
-                .toList();
+        } catch (Exception e) {
+            System.err.println("NearbyPlaces error: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
-    private String mapToOsmType(String frontendType) {
+    private String mapToGeoapifyType(String frontendType) {
         return switch (frontendType.toLowerCase()) {
-            case "atm" -> "atm";
-            case "police" -> "police";
-            case "hospital" -> "hospital";
-            case "restaurant" -> "restaurant";
-            case "cafe" -> "cafe";
-//            case "gas_station" -> "fuel";
-            case "pharmacy" -> "pharmacy";
-            default -> "atm";
+            case "atm" -> "service.financial.atm";
+            case "police" -> "service.police";
+            case "hospital" -> "healthcare.hospital";
+            case "pharmacy" -> "healthcare.pharmacy";
+            case "restaurant" -> "catering.restaurant";
+            case "cafe" -> "catering.cafe";
+            case "toilet" -> "amenity.toilet";
+//            case "fuel" -> "fuel";
+            default -> "service.financial.atm";
         };
     }
-
 }

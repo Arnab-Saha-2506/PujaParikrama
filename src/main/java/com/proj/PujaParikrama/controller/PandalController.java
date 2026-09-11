@@ -56,7 +56,7 @@ public class PandalController {
             @RequestParam(defaultValue = "2") Double radiusKm) {
 
         // Validate type - only allow specific types
-        List<String> allowedTypes = List.of("atm", "police", "hospital", "restaurant", "cafe", "pharmacy");
+        List<String> allowedTypes = List.of("atm", "police", "hospital", "restaurant", "cafe", "pharmacy", "toilet");
         if (!allowedTypes.contains(type.toLowerCase())) {
             return ResponseEntity.badRequest().build();
         }
