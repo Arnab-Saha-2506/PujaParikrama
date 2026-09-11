@@ -1,9 +1,6 @@
 package com.proj.PujaParikrama.service;
 
-import com.proj.PujaParikrama.dto.DistanceResponseDTO;
-import com.proj.PujaParikrama.dto.MetroStationResponseDTO;
-import com.proj.PujaParikrama.dto.PandalDetailResponseDTO;
-import com.proj.PujaParikrama.dto.PandalResponseDTO;
+import com.proj.PujaParikrama.dto.*;
 import com.proj.PujaParikrama.entity.AreaEntity;
 import com.proj.PujaParikrama.entity.PandalEntity;
 import com.proj.PujaParikrama.entity.PandalMetroEntity;
@@ -16,6 +13,7 @@ import com.proj.PujaParikrama.repository.PandalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -98,6 +96,21 @@ public class PandalServiceImpl implements PandalService{
         return PandalMapper.toDistanceResponseDTO(pandal, distanceKm, walkingMinutes);
 
         //        return null;
+    }
+
+    @Override
+    public List<NearbyPandalDTO> findNearbyPandals(double lat, double lon, double radiusKm) {
+        List<PandalEntity> allPandals = pandalRepository.findAll();
+
+        return allPandals.stream()
+                .filter(p -> p.getLatitude() != null && p.getLongitude() != null)
+                .map(p -> {
+                    double distance = calculateHaversineDistance(lat, lon, p.getLatitude(), p.getLongitude());
+                    return PandalMapper.toNearbyPandalDTO(p, distance);
+                })
+                .filter(dto -> dto.getDistanceInKm() <= radiusKm)
+                .sorted(Comparator.comparing(NearbyPandalDTO::getDistanceInKm))
+                .toList();
     }
 
     private double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2){
