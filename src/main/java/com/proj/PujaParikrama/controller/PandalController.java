@@ -1,9 +1,7 @@
 package com.proj.PujaParikrama.controller;
 
-import com.proj.PujaParikrama.dto.DistanceResponseDTO;
-import com.proj.PujaParikrama.dto.NearbyPandalDTO;
-import com.proj.PujaParikrama.dto.PandalDetailResponseDTO;
-import com.proj.PujaParikrama.dto.PandalResponseDTO;
+import com.proj.PujaParikrama.dto.*;
+import com.proj.PujaParikrama.service.NearbyPlaceService;
 import com.proj.PujaParikrama.service.PandalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +14,7 @@ import java.util.List;
 @RequestMapping("/api/v1")
 public class PandalController {
     private final PandalService pandalService;
+    private final NearbyPlaceService nearbyPlaceService;
 
     @GetMapping("/areas/{areaId}/pandals")
     public ResponseEntity<List<PandalResponseDTO>> getPandalsByArea(@PathVariable Long areaId) {
@@ -47,6 +46,23 @@ public class PandalController {
     ){
         List<NearbyPandalDTO> response = pandalService.findNearbyPandals(lat, lon, radiusKm);
         return ResponseEntity.ok().body(response);
+    }
+
+    @GetMapping("/nearby/places")
+    public ResponseEntity<List<NearbyPlaceDTO>> findNearbyPlaces(
+            @RequestParam String type,
+            @RequestParam Double lat,
+            @RequestParam Double lon,
+            @RequestParam(defaultValue = "2") Double radiusKm) {
+
+        // Validate type - only allow specific types
+        List<String> allowedTypes = List.of("atm", "police", "hospital", "restaurant", "cafe", "pharmacy");
+        if (!allowedTypes.contains(type.toLowerCase())) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<NearbyPlaceDTO> places = nearbyPlaceService.findNearbyPlaces(type, lat, lon, radiusKm);
+        return ResponseEntity.ok(places);
     }
 
 }
