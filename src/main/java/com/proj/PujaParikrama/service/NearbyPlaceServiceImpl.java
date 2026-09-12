@@ -3,6 +3,7 @@ package com.proj.PujaParikrama.service;
 import com.proj.PujaParikrama.dto.NearbyPlaceDTO;
 import com.proj.PujaParikrama.mappers.NearbyPlaceMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,8 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class NearbyPlaceServiceImpl implements NearbyPlaceService {
+@Slf4j
+public class NearbyPlaceServiceImpl {
 
     private final RestTemplate restTemplate;
 
@@ -24,9 +26,8 @@ public class NearbyPlaceServiceImpl implements NearbyPlaceService {
 
     private static final String GEOAPIFY_URL = "https://api.geoapify.com/v2/places";
 
-    @Override
     @Cacheable(value = "nearbyPlaces", key = "{#type, #lat, #lon, #radiusKm}")
-    public List<NearbyPlaceDTO> findNearbyPlaces(String type, double lat, double lon, double radiusKm) {
+    public NearbyPlaceResult findNearbyPlaces(String type, double lat, double lon, double radiusKm) {
         try {
             String geoapifyType = mapToGeoapifyType(type);
             int radiusMeters = (int) (radiusKm * 1000);
@@ -43,12 +44,16 @@ public class NearbyPlaceServiceImpl implements NearbyPlaceService {
             ResponseEntity<Map> responseEntity = restTemplate.getForEntity(url, Map.class);
             Map<String, Object> response = responseEntity.getBody();
 
+            if (response == null) {
+                return NearbyPlaceResult.failure("NULL_RESPONSE", "Geoapify returned null response");
+            }
+
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> features = (response != null)
                     ? (List<Map<String, Object>>) response.getOrDefault("features", Collections.emptyList())
                     : Collections.emptyList();
 
-            return features.stream()
+            List<NearbyPlaceDTO> places = features.stream()
                     .limit(50)
                     .map(result -> NearbyPlaceMapper.toNearbyPlaceDTO(result, lat, lon))
                     .filter(Objects::nonNull)
@@ -56,9 +61,11 @@ public class NearbyPlaceServiceImpl implements NearbyPlaceService {
                     .sorted(Comparator.comparing(NearbyPlaceDTO::getDistanceInKm))
                     .collect(Collectors.toList());
 
+            return NearbyPlaceResult.success(places);
+
         } catch (Exception e) {
-            System.err.println("NearbyPlaces error: " + e.getClass().getSimpleName() + " - " + e.getMessage());
-            return Collections.emptyList();
+            log.error("Geoapify error for type {}: {}", type, e.getMessage());
+            return NearbyPlaceResult.failure("ERROR", e.getMessage());
         }
     }
 
@@ -71,7 +78,6 @@ public class NearbyPlaceServiceImpl implements NearbyPlaceService {
             case "restaurant" -> "catering.restaurant";
             case "cafe" -> "catering.cafe";
             case "toilet" -> "amenity.toilet";
-//            case "fuel" -> "fuel";
             default -> "service.financial.atm";
         };
     }

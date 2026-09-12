@@ -1,6 +1,7 @@
 package com.proj.PujaParikrama.controller;
 
 import com.proj.PujaParikrama.dto.*;
+import com.proj.PujaParikrama.service.CompositeNearbyPlaceService;
 import com.proj.PujaParikrama.service.NearbyPlaceService;
 import com.proj.PujaParikrama.service.PandalService;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,7 @@ import java.util.List;
 @RequestMapping("/api/v1")
 public class PandalController {
     private final PandalService pandalService;
-    private final NearbyPlaceService nearbyPlaceService;
+    private final CompositeNearbyPlaceService nearbyPlaceService;
 
     @GetMapping("/areas/{areaId}/pandals")
     public ResponseEntity<List<PandalResponseDTO>> getPandalsByArea(@PathVariable Long areaId) {
@@ -56,7 +57,7 @@ public class PandalController {
             @RequestParam(defaultValue = "2") Double radiusKm) {
 
         // Validate type - only allow specific types
-        List<String> allowedTypes = List.of("atm", "police", "hospital", "restaurant", "cafe", "pharmacy", "toilet");
+        List<String> allowedTypes = List.of("atm", "police", "hospital", "restaurant", "cafe", "pharmacy", "toilet", "fuel", "bank");
         if (!allowedTypes.contains(type.toLowerCase())) {
             return ResponseEntity.badRequest().build();
         }

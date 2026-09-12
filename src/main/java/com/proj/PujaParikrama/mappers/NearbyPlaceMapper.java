@@ -90,4 +90,37 @@ public class NearbyPlaceMapper {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }
+
+    public static NearbyPlaceDTO toNearbyPlaceDTOFromGoogle(Map<String, Object> result, double userLat, double userLon) {
+        try {
+            // Google Places response format
+            String placeId = (String) result.get("place_id");
+            String name = (String) result.get("name");
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> geometry = (Map<String, Object>) result.get("geometry");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> location = (Map<String, Object>) geometry.get("location");
+            double lat = ((Number) location.get("lat")).doubleValue();
+            double lon = ((Number) location.get("lng")).doubleValue();
+
+            String vicinity = (String) result.get("vicinity");
+            String address = vicinity != null ? vicinity : (String) result.get("formatted_address");
+
+            double distanceKm = calculateHaversine(userLat, userLon, lat, lon);
+
+            return NearbyPlaceDTO.builder()
+                    .placeId(placeId)
+                    .name(name)
+                    .address(address)
+                    .latitude(lat)
+                    .longitude(lon)
+                    .distanceInKm(Math.round(distanceKm * 100.0) / 100.0)
+                    .walkingTimeMinutes((int) Math.round(distanceKm / 5.0 * 60))
+                    .build();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 }
