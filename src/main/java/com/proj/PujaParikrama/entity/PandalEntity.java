@@ -45,4 +45,10 @@ public class PandalEntity extends BaseEntity{
 
     @OneToMany(mappedBy = "pandal", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PandalMetroEntity> pandalMetros;
+
+    @Column(length = 100, unique = true)
+    private String externalId;
+
+    @Column(length = 50)
+    private String source;
 }

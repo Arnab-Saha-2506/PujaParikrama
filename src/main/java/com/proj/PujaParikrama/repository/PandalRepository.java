@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PandalRepository extends JpaRepository<PandalEntity, Long> {
 
@@ -24,4 +25,8 @@ public interface PandalRepository extends JpaRepository<PandalEntity, Long> {
     List<PandalEntity> findByBoundingBox(
             @Param("minLat") double minLat, @Param("maxLat") double maxLat,
             @Param("minLon") double minLon, @Param("maxLon") double maxLon);
+
+    Optional<PandalEntity> findByExternalIdAndSource(String externalId, String source);
+
+    List<PandalEntity> findByNameContainingIgnoreCaseAndAreaId(String name, Long areaId);
 }
