@@ -100,9 +100,13 @@ public class PandalServiceImpl implements PandalService{
 
     @Override
     public List<NearbyPandalDTO> findNearbyPandals(double lat, double lon, double radiusKm) {
-        List<PandalEntity> allPandals = pandalRepository.findAll();
+//        List<PandalEntity> allPandals = pandalRepository.findAll();
 
-        return allPandals.stream()
+        double latDelta = radiusKm / 111.0;
+        double lonDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(lat)));
+        List<PandalEntity> candidates = pandalRepository.findByBoundingBox(
+                lat - latDelta, lat + latDelta, lon - lonDelta, lon + lonDelta);
+        return candidates.stream()
                 .filter(p -> p.getLatitude() != null && p.getLongitude() != null)
                 .map(p -> {
                     double distance = calculateHaversineDistance(lat, lon, p.getLatitude(), p.getLongitude());
