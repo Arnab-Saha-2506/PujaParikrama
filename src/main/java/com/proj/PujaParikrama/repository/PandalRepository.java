@@ -1,6 +1,7 @@
 package com.proj.PujaParikrama.repository;
 
 import com.proj.PujaParikrama.entity.PandalEntity;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,7 +25,8 @@ public interface PandalRepository extends JpaRepository<PandalEntity, Long> {
             "AND p.longitude BETWEEN :minLon AND :maxLon")
     List<PandalEntity> findByBoundingBox(
             @Param("minLat") double minLat, @Param("maxLat") double maxLat,
-            @Param("minLon") double minLon, @Param("maxLon") double maxLon);
+            @Param("minLon") double minLon, @Param("maxLon") double maxLon,
+            Pageable pageable);
 
     Optional<PandalEntity> findByExternalIdAndSource(String externalId, String source);
 

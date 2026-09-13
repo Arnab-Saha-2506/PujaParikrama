@@ -11,6 +11,9 @@ import com.proj.PujaParikrama.repository.AreaRepository;
 import com.proj.PujaParikrama.repository.PandalMetroRepository;
 import com.proj.PujaParikrama.repository.PandalRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -104,8 +107,11 @@ public class PandalServiceImpl implements PandalService{
 
         double latDelta = radiusKm / 111.0;
         double lonDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(lat)));
+
+        Pageable top50 = PageRequest.of(0,50, Sort.by("id"));
+
         List<PandalEntity> candidates = pandalRepository.findByBoundingBox(
-                lat - latDelta, lat + latDelta, lon - lonDelta, lon + lonDelta);
+                lat - latDelta, lat + latDelta, lon - lonDelta, lon + lonDelta, top50);
         return candidates.stream()
                 .filter(p -> p.getLatitude() != null && p.getLongitude() != null)
                 .map(p -> {
