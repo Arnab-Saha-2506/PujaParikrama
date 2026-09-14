@@ -21,7 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class PandalServiceImpl implements PandalService{
+public class PandalServiceImpl implements PandalService {
 
     private final PandalRepository pandalRepository;
     private final AreaRepository areaRepository;
@@ -30,11 +30,10 @@ public class PandalServiceImpl implements PandalService{
     @Override
     public List<PandalResponseDTO> getPandalsByArea(Long areaId) {
         AreaEntity area;
-        try{
+        try {
             area = areaRepository.getReferenceById(areaId);
-        }
-        catch (Exception e){
-            throw new NotFoundException("Area not found with id: "+areaId);
+        } catch (Exception e) {
+            throw new NotFoundException("Area not found with id: " + areaId);
         }
 
         List<PandalEntity> pandalEntityList = pandalRepository.findByAreaId(areaId);
@@ -51,7 +50,7 @@ public class PandalServiceImpl implements PandalService{
         try {
             pandal = pandalRepository.getReferenceById(pandalId);
         } catch (Exception e) {
-            throw new NotFoundException("Pandal not found with id: "+pandalId);
+            throw new NotFoundException("Pandal not found with id: " + pandalId);
         }
 
         AreaEntity area = pandal.getArea();
@@ -64,19 +63,19 @@ public class PandalServiceImpl implements PandalService{
 
         return PandalMapper.toPandalDetailResponseDTO(pandal, area, nearbyMetros);
 
-//        return null;
+        // return null;
     }
 
     @Override
     public DistanceResponseDTO calculateDistance(Long pandalId, Double userLatitude, Double userLongitude) {
 
-        if(userLatitude == null || userLongitude == null){
+        if (userLatitude == null || userLongitude == null) {
             throw new IllegalArgumentException("Latitude and Longitude are required");
         }
-        if(userLatitude < -90 || userLatitude > 90){
+        if (userLatitude < -90 || userLatitude > 90) {
             throw new IllegalArgumentException("Latitude must be between -90 and 90");
         }
-        if(userLongitude < -180 || userLongitude > 180){
+        if (userLongitude < -180 || userLongitude > 180) {
             throw new IllegalArgumentException("Longitude must be between -180 and 180");
         }
 
@@ -85,30 +84,31 @@ public class PandalServiceImpl implements PandalService{
         try {
             pandal = pandalRepository.getReferenceById(pandalId);
         } catch (Exception e) {
-            throw new NotFoundException("Pandal not found with id: "+pandalId);
+            throw new NotFoundException("Pandal not found with id: " + pandalId);
         }
 
-        if(pandal.getLatitude() == null || pandal.getLongitude() == null){
+        if (pandal.getLatitude() == null || pandal.getLongitude() == null) {
             throw new NotFoundException("Pandal location coordinates not available");
         }
 
-        double distanceKm = calculateHaversineDistance(userLatitude, userLongitude, pandal.getLatitude(), pandal.getLongitude());
+        double distanceKm = calculateHaversineDistance(userLatitude, userLongitude, pandal.getLatitude(),
+                pandal.getLongitude());
 
         int walkingMinutes = (int) Math.round((distanceKm / 5.0) * 60);
 
         return PandalMapper.toDistanceResponseDTO(pandal, distanceKm, walkingMinutes);
 
-        //        return null;
+        // return null;
     }
 
     @Override
     public List<NearbyPandalDTO> findNearbyPandals(double lat, double lon, double radiusKm) {
-//        List<PandalEntity> allPandals = pandalRepository.findAll();
+        // List<PandalEntity> allPandals = pandalRepository.findAll();
 
         double latDelta = radiusKm / 111.0;
         double lonDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(lat)));
 
-        Pageable top50 = PageRequest.of(0,50, Sort.by("id"));
+        Pageable top50 = PageRequest.of(0, 50, Sort.by("id"));
 
         List<PandalEntity> candidates = pandalRepository.findByBoundingBox(
                 lat - latDelta, lat + latDelta, lon - lonDelta, lon + lonDelta, top50);
@@ -120,18 +120,19 @@ public class PandalServiceImpl implements PandalService{
                 })
                 .filter(dto -> dto.getDistanceInKm() <= radiusKm)
                 .sorted(Comparator.comparing(NearbyPandalDTO::getDistanceInKm))
+                .limit(20)
                 .toList();
     }
 
-    private double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2){
+    private double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
         final int R = 6371;
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                        * Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
-        double c = 2* Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }
 }
