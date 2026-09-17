@@ -80,20 +80,20 @@ The POI service supports multiple external providers:
                   └─────────┬───────────┘
                             ↓
                     ┌───────────────┐
-                    │   Geoapify    │
+                    │ Google Places │
                     │    Primary    │
                     └───────┬───────┘
                             │
                      Failure / Timeout
                             ↓
                     ┌───────────────┐
-                    │ Google Places │
+                    │   Geoapify    │
                     │   Fallback    │
                     └───────────────┘
 ```
 
-- Geoapify as the primary provider.
-- Google Places as the fallback provider.
+- Google Places as the primary provider.
+- Geoapify as the fallback provider.
 - Automatic fallback on provider errors, timeout, quota exhaustion, or key issues.
 - 5-second external-service timeout.
 - Spring Cache to reduce repeated external API calls.
@@ -244,8 +244,8 @@ This allows the origin of external data to be tracked.
 | Validation | Jakarta Bean Validation / Hibernate Validator |
 | Caching | Spring Cache + Caffeine |
 | Mapping | Manual Entity ↔ DTO Mappers |
-| Primary POI Provider | Geoapify |
-| POI Fallback | Google Places |
+| Primary POI Provider | Google Places |
+| POI Fallback | Geoapify |
 | Routing | OSRM |
 | Configuration | Environment Variables / dotenv-java |
 
@@ -500,7 +500,7 @@ Create a `.env` file or configure environment variables:
 
 ```env
 # Database
-DATASOURCE_URL=jdbc:mysql://localhost:3306/pujapath?useSSL=false&serverTimezone=UTC
+DATASOURCE_URL=jdbc:mysql://localhost:XXXX
 DATASOURCE_USERNAME=your_user
 DATASOURCE_PASSWORD=your_password
 DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
