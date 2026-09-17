@@ -80,14 +80,14 @@ The POI service supports multiple external providers:
                   └─────────┬───────────┘
                             ↓
                     ┌───────────────┐
-                    │   Geoapify    │
+                    │ Google Places │
                     │    Primary    │
                     └───────┬───────┘
                             │
                      Failure / Timeout
                             ↓
                     ┌───────────────┐
-                    │ Google Places │
+                    │   Geoapify    │
                     │   Fallback    │
                     └───────────────┘
 ```
